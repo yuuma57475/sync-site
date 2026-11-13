@@ -1,0 +1,69 @@
+name: Publish verified Sync APK
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/publish-apk-20261114-002721.yml"]
+permissions:
+  contents: write
+concurrency:
+  group: sync-verified-apk-release
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Verify APK and publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_CONFIG: eyJ2ZXJzaW9uIjogIjAuMi4yMDI2MTExNC4wMDI3MjEiLCAidGFnIjogImFuZHJvaWQtMjAyNjExMTQtMDAyNzIxLTViZmY1Njk3IiwgInNoYTI1NiI6ICI1YmZmNTY5Nzk5N2I1MWU2NGQxNDZlOWRkZWQyY2U5MTc0YjNjM2VkZTQ2MmYwNTU4NzM3MDA1MjMxMzBhYzBlIiwgInNpemUiOiAzNDY0MzI2MzQsICJib2R5IjogIlN5bmMgQW5kcm9pZCDpgJrluLjniYggMC4yLjIwMjYxMTE0LjAwMjcyMVxuXG4tIFNwb3RpZnnjgavjg63jgrDjgqTjg7PmuIjjgb/jgafjgoLmjqXntprnorroqo3jgavlpLHmlZfjgZfjgIHlho3nlJ/jgYzlp4vjgb7jgonjgarjgYTllY/poYzjgpLkv67mraPjgZfjgb7jgZfjgZ/jgILkv53lrZjmuIjjgb/jga7jg63jgrDjgqTjg7PnirbmhYvjgpLmraPjgZfjgY/liKnnlKjjgZfjgIHlj6TjgYTmg4XloLHjgafkuIrmm7jjgY3jgZfjgarjgYTjgojjgYbjgavjgZfjgb7jgZfjgZ/jgIJcbi0gU3BvdGlmeeOBruODreOCsOOCpOODs+OBjOW/heimgeOBquWgtOWQiOOBq+mVt+aZgumWk+iqreOBv+i+vOOBv+e2muOBkeOBmuOAgeaOpee2muOBl+ebtOOBmeOBn+OCgeOBruahiOWGheOCkuihqOekuuOBmeOCi+OCiOOBhuOBq+OBl+OBvuOBl+OBn+OAglxuLSDmm7Ljga7nlLvpnaLjgYzooajnpLrjgZXjgozjgZ/nm7TlvozjgIFTcG90aWZ544Gu5YaN55Sf5rqW5YKZ44GM57WC44KP44KL5YmN44Gr5qSc57Si44G456e75YuV44GX44Gm6Kqt44G/6L6844G/44GM5q2i44G+44KL5ZWP6aGM44KS5L+u5q2j44GX44G+44GX44Gf44CCXG4tIOabsuOBruWIh+OCiuabv+OBiOaZguOBq1Nwb3RpZnnlgbTjgYvjgonlv5znrZTjgYzmnaXjgarjgYTloLTlkIjjgIHoh6rli5XjgafmjqXntprjgpLlvqnml6fjgZfjgIHlvqnml6fjgafjgY3jgarjgYTjgajjgY3jga/oqq3jgb/ovrzjgb/jgpLntprjgZHjgZrmoYjlhoXjgZnjgovjgojjgYbjgavjgZfjgb7jgZfjgZ/jgIJcblxu44ON44Kk44OG44Kj44OWVUnvvI/jgrnjg57jg5vlhoVTcG90aWZ55YaN55Sf44CCQW5kcm9pZCA45Lul6ZmN44CBQVJNNjTjg7tBUk12N+OBq+WvvuW/nOOAglxu5pei5a2Y44Gu6YCa5bi454mI44G45LiK5pu444GN5pu05paw44Gn44GN44G+44GZ44CCU3BvdGlmeeOBruaOpee2muOBr+WQhOerr+acq+OBp+ioreWumuOBl+OBpuOBj+OBoOOBleOBhOOAglxuXG7mpJzoqLzvvJrplqLpgKM0OOS7tuOBrkFuZHJvaWTjg4bjgrnjg4jjgIE5OOS7tuOBruWGjeeUn+aTjeS9nOODhuOCueODiOOAgTE05Lu244Gu5YaF6YOo5o6l57aa44OG44K544OI44CCXG7jgqjjg5/jg6Xjg6zjg7zjgr/jg7zjgafkv53lrZjmuIjjgb/mjqXntprjgYvjgoky5puy44Gu5a6f5YaN55Sf44O75puy5YiH44KK5pu/44GI44O76Z+z6Z+/5Yem55CG44KS56K66KqN44CCXG5cblNIQS0yNTY6IGA1YmZmNTY5Nzk5N2I1MWU2NGQxNDZlOWRkZWQyY2U5MTc0YjNjM2VkZTQ2MmYwNTU4NzM3MDA1MjMxMzBhYzBlYCJ9
+        shell: python
+        run: |
+          import base64, hashlib, json, os, pathlib, urllib.request, urllib.parse
+          cfg = json.loads(base64.b64decode(os.environ['RELEASE_CONFIG']))
+          source = 'https://desktop-a104f6h.tail975315.ts.net/api/app/update/'
+          with urllib.request.urlopen(source + 'info', timeout=60) as response:
+              manifest = json.load(response)
+          assert manifest['apkVersion'] == cfg['version'], 'Update server changed; do not publish a different build'
+          path = pathlib.Path('Sync.apk')
+          digest = hashlib.sha256()
+          size = 0
+          with urllib.request.urlopen(source + 'download', timeout=60) as response, path.open('wb') as output:
+              while chunk := response.read(1024 * 1024):
+                  size += len(chunk)
+                  assert size <= cfg['size'], 'Unexpected APK length'
+                  digest.update(chunk)
+                  output.write(chunk)
+          assert size == cfg['size'] and digest.hexdigest() == cfg['sha256'], 'APK hash mismatch'
+          repo = os.environ['GITHUB_REPOSITORY']
+          assert repo == 'yuuma57475/sync-site'
+          base = 'https://api.github.com/repos/' + repo
+          headers = {'Authorization': 'Bearer ' + os.environ['GH_TOKEN'],
+              'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2026-03-10'}
+          def api(url, method='GET', value=None, binary=False):
+              assert urllib.parse.urlsplit(url).hostname in ('api.github.com', 'uploads.github.com')
+              data = value if binary else json.dumps(value).encode() if value is not None else None
+              request = urllib.request.Request(url, data=data, method=method, headers={**headers,
+                  'Content-Type': 'application/vnd.android.package-archive' if binary else 'application/json'})
+              with urllib.request.urlopen(request, timeout=300) as response:
+                  return json.load(response)
+          # Read all matching releases, including an interrupted draft, before creating.
+          releases = api(base + '/releases?per_page=100')
+          release = next((r for r in releases if r['tag_name'] == cfg['tag']), None)
+          if release is None:
+              release = api(base + '/releases', 'POST', {'tag_name': cfg['tag'],
+                  'target_commitish': os.environ['GITHUB_SHA'], 'name': 'Sync Android ' + cfg['version'],
+                  'body': cfg['body'], 'draft': True, 'prerelease': False})
+          asset = next((a for a in release['assets'] if a['name'] == 'Sync.apk'), None)
+          if asset is None:
+              assert release['draft'], 'Never replace a published asset'
+              upload = release['upload_url'].split('{', 1)[0] + '?name=Sync.apk'
+              asset = api(upload, 'POST', path.read_bytes(), binary=True)
+          assert asset['size'] == cfg['size'] and asset['state'] == 'uploaded'
+          if asset.get('digest'):
+              assert asset['digest'] == 'sha256:' + cfg['sha256']
+          if release['draft']:
+              release = api(release['url'], 'PATCH', {'draft': False, 'make_latest': 'true'})
+          print('Published verified APK:', release['html_url'])
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as output:
+              output.write('Published [' + cfg['version'] + '](' + release['html_url'] + ')\n\nSHA-256: `' + cfg['sha256'] + '`\n')
